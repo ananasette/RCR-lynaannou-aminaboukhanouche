@@ -1,0 +1,7 @@
+p
+q
+p -> r
+s
+p : s / r
+p : q / s
+p : s / h

@@ -1,0 +1,6 @@
+quaker(nixon)
+republicain(nixon)
+quaker(ann)
+republicain(ann)
+quaker(x) : pacifiste(x) / pacifiste(x)
+republicain(x) : ~pacifiste(x) / ~pacifiste(x)
