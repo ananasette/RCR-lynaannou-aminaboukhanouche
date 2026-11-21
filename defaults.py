@@ -1,5 +1,6 @@
 import json
 from formulas import lire_formule, afficher_formule
+from reasoning import est_coherent
 
 
 class Default:
@@ -40,8 +41,17 @@ class Theory:
         self._src_faits.append(texte.strip())
 
     def ajouter_defaut(self, texte):
-        self.defauts.append(Default.depuis_texte(texte))
+        """Ajoute le défaut et renvoie la liste des avertissements (éventuellement vide).
+        Une justification incohérente (ex. x & ~x) n'est pas une erreur : le défaut
+        est ajouté, mais il ne sera jamais applicable."""
+        d = Default.depuis_texte(texte)
+        avertissements = [
+            f"La justification « {afficher_formule(j)} » est incohérente : "
+            f"ce défaut ne sera jamais applicable."
+            for j in d.justifications if not est_coherent([j])]
+        self.defauts.append(d)
         self._src_defauts.append(texte.strip())
+        return avertissements
 
     def sauvegarder(self, chemin):
         """Plain text: one fact or default per line (facts first)."""

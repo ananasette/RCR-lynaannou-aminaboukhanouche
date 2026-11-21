@@ -55,7 +55,8 @@ def main():
             if c == "1":
                 t.ajouter_fait(input("Fait : "))
             elif c == "2":
-                t.ajouter_defaut(input("Défaut : "))
+                for w in t.ajouter_defaut(input("Défaut : ")):
+                    print("AVERTISSEMENT :", w)
             elif c == "3":
                 print(t)
             elif c == "4":
@@ -74,7 +75,7 @@ def main():
                 print("Crédule  :", consequence_credulous(t, f))
                 print("Sceptique:", consequence_sceptique(t, f))
             elif c == "8":
-                t.sauvegarder(input("Fichier (ex: th.json) : "))
+                t.sauvegarder(input("Fichier (ex: th.txt) : "))
                 print("Sauvegardé.")
             elif c == "9":
                 t = Theory.charger(input("Fichier : "))
