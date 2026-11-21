@@ -1,8 +1,11 @@
+from theorem import audit, reparations
 from formulas import lire_formule, afficher_formule
 from defaults import Theory
 from reasoning import (est_coherent, consequence,
                        formules_incoherentes, sous_ensembles_incoherents)
 from extensions import extensions, consequence_credulous, consequence_sceptique
+from surprise import est_secret, surprise
+
 
 MENU = """
 ================ Logique des défauts ================
@@ -11,7 +14,8 @@ MENU = """
  5. W |= formule ?                 6. Calculer les extensions
  7. Conséquence crédule/sceptique  8. Sauvegarder
  9. Charger                        d. Charger un exemple (Tweety / Nixon)
- 0. Quitter
+ 0. Quitter                        a. Audit de la théorie            
+r. Réparations (supprimer des défauts)
 Syntaxe: ~ & | -> <->   |  défaut:  prérequis : justif1 ; justif2 / conclusion
 Exemple: oiseau(tweety) : vole(tweety) / vole(tweety)
 """
@@ -34,8 +38,12 @@ def montrer_extensions(t):
     exts = extensions(t)
     if not exts:
         print("Aucune extension.")
+        return
+    print(f"{len(exts)} extension(s)")
     for i, E in enumerate(exts, 1):
-        print(f"Extension {i}: " + " , ".join(afficher_formule(f) for f in E))
+        print(f"Extension {i}: " + " , ".join(afficher_formule(f) for f in E.base))
+        print("   littéraux :", ", ".join(afficher_formule(l) for l in E.litteraux()) or "(aucun)")
+        print("   défauts appliqués :", E.noms or "(aucun)")
 
 
 def main():
@@ -76,6 +84,23 @@ def main():
                 print(t)
             elif c == "0":
                 break
+            elif c == "a":
+                for nom, statut, comm in audit(t):
+                    print(f"  {nom} : {statut}  {comm}")
+            elif c == "r":
+                reps = reparations(t)
+                if not reps:
+                    print("Rien à réparer (une extension existe déjà).")
+                for r in reps:
+                    print("  Retirer :", r)
+            elif est_secret(c):
+                s = surprise(c)
+                print(f"\n*** {s.type} : {s.titre} ***")
+                print(s.enonce)
+                input("\n[Entrée pour l'explication] ")
+                print("\nExplication :", s.explication)
+                print("Exemple    :", s.exemple)
+                print("Source     :", s.source)
             else:
                 print("Choix inconnu.")
         except (ValueError, OSError) as e:

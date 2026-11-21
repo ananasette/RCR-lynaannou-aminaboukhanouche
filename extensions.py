@@ -1,6 +1,7 @@
 import re
-from itertools import combinations, product
-from sympy import Symbol
+from dataclasses import dataclass, field
+from itertools import product
+from sympy import Symbol, Not
 from reasoning import est_coherent, consequence
 from defaults import Theory, Default
 
@@ -79,6 +80,7 @@ def _equivalents(A, B):
 
 
 def _gamma(theorie, E):
+    """Kept only to verify results: Gamma(E) must be equivalent to E."""
     courant = list(theorie.faits)
     appliques = set()
     changement = True
@@ -94,23 +96,70 @@ def _gamma(theorie, E):
     return courant
 
 
+# ---------------------------------------------------------------- extensions
+@dataclass
+class Extension:
+    base: list                                      # In: W + conclusions of applied defaults
+    appliques: list = field(default_factory=list)   # indices (in the instantiated theory)
+    noms: list = field(default_factory=list)        # str() of the applied defaults
+    out: list = field(default_factory=list)         # the ¬β commitments
+
+    def litteraux(self):
+        """Literals (a or ¬a) entailed by the extension."""
+        atomes = {s for f in self.base for s in f.atoms(Symbol)}
+        res = []
+        for a in sorted(atomes, key=lambda s: s.name):
+            if consequence(self.base, a):
+                res.append(a)
+            elif consequence(self.base, Not(a)):
+                res.append(Not(a))
+        return res
+
+#reiter's process tree : replaces the exponential original function we were using ; where the original function was exploring all possible combinations of defaults, 
+# this one explores only the applicable ones and prunes the branches that lead to incoherence. 
+# We apply a default, add it to the list of applied defaults, and then explore the next applicable defaults. 
+# If we reach a point where no more defaults can be applied, we check if the current set of applied defaults leads to a coherent extension. 
+# If it does, we add it to the results. If not, we backtrack and try other combinations.
 def extensions(theorie):
+   
     theorie = instancier(theorie)
-    n = len(theorie.defauts)
-    trouvees = []
-    for k in range(n + 1):
-        for indices in combinations(range(n), k):
-            E = list(theorie.faits) + [theorie.defauts[i].conclusion for i in indices]
-            if _equivalents(_gamma(theorie, E), E):
-                if not any(_equivalents(E, autre) for autre in trouvees):
-                    trouvees.append(E)
-    return trouvees
+    D = theorie.defauts
+    resultats = []
+    vus = set()                       # sets of applied defaults already explored
+
+    def explorer(appliques, In, Out):
+        # 1. failed process: a committed ¬β became derivable (monotonic -> prune)
+        if any(consequence(In, o) for o in Out):
+            return
+        # 2. applicable defaults not yet used
+        candidats = [i for i, d in enumerate(D)
+                     if i not in appliques and est_applicable(d, In)]
+        # 3. closed and successful -> extension
+        if not candidats:
+            if not any(_equivalents(In, x.base) for x in resultats):
+                resultats.append(Extension(list(In), list(appliques),
+                                           [str(D[i]) for i in appliques],
+                                           list(Out)))
+            return
+        # 4. branch on each applicable default
+        for i in candidats:
+            cle = frozenset(appliques) | {i}
+            if cle in vus:            # same defaults reached in another order
+                continue
+            vus.add(cle)
+            d = D[i]
+            explorer(appliques + [i],
+                     In + [d.conclusion],
+                     Out + [Not(j) for j in d.justifications])
+
+    explorer([], list(theorie.faits), [])
+    return resultats
 
 
 def consequence_credulous(theorie, formule):
-    return any(consequence(E, formule) for E in extensions(theorie))
+    return any(consequence(E.base, formule) for E in extensions(theorie))
 
 
 def consequence_sceptique(theorie, formule):
     exts = extensions(theorie)
-    return bool(exts) and all(consequence(E, formule) for E in exts)
+    return bool(exts) and all(consequence(E.base, formule) for E in exts)

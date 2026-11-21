@@ -1,8 +1,10 @@
+from functools import lru_cache
 from itertools import combinations
 from sympy import And, Not
 from sympy.logic.inference import satisfiable
 
 
+@lru_cache(maxsize=None)
 def _sat(f):
     # satisfiable() returns False or a model dict (which may be {}), so test "is not False"
     return satisfiable(f) is not False
