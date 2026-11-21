@@ -189,7 +189,8 @@ class MainWindow(QMainWindow):
         self.resultats = QTextEdit()
         self.resultats.setReadOnly(True)
         self.resultats.setObjectName("terminal")
-        main_layout.addWidget(self.resultats)
+        self.resultats.setMinimumHeight(140)
+        main_layout.addWidget(self.resultats, 1)
 
         self.player = QMediaPlayer()
         self.audio_output = QAudioOutput()
@@ -207,7 +208,7 @@ class MainWindow(QMainWindow):
             QPushButton:hover { background-color: #FFD1DC; border: 3px solid #c3e9fd; }
             QPushButton:pressed { background-color: #c3e9fd; }
             QLineEdit, QListWidget { border: 2px solid #D4E9F2; border-radius: 8px; padding: 5px; background-color: #FAFAFA; color: #333; }
-            QTextEdit#terminal { background-color: #2D2D2D; color: #00FF00; font-family: "VT323", "Courier New", monospace; font-size: 22px; border: 4px solid #F9C6D3; border-radius: 15px; padding: 10px; }
+            QTextEdit#terminal { background-color: #e39fb0; color: #ebf9ff; font-family: "VT323", "Courier New", monospace; font-weight: bold; font-size: 18px; border: 4px solid #F9C6D3; border-radius: 15px; padding: 5px; }
         """)
 
     def dragEnterEvent(self, event):
