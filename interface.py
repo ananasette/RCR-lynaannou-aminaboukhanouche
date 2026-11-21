@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QLabel, QLineEdit, QPushButton, 
                                QListWidget, QTextEdit, QGroupBox, QMessageBox,
                                QFileDialog, QInputDialog)
-from PySide6.QtGui import QPixmap, QPainter, QCursor, QFont, QFontDatabase
+from PySide6.QtGui import QPixmap, QPainter, QCursor, QFont, QFontDatabase, QColor, QPen
 from PySide6.QtCore import QTimer, Qt, QPoint, QUrl
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from theorem import audit, reparations
@@ -23,7 +23,8 @@ class Personnage(QWidget):
         # Chargement des imgs
         self.img_corps = QPixmap("assets/corps.png")
         self.img_yeux = QPixmap("assets/yeux.png")
-        
+        self.setAttribute(Qt.WA_TranslucentBackground)
+                
         if self.img_corps.isNull():
             self.img_corps = QPixmap(150, 150)
             self.img_corps.fill(Qt.transparent)
@@ -67,6 +68,23 @@ class Personnage(QWidget):
         painter.drawPixmap(int(base_x_yeux + offset_x), int(base_y_yeux + offset_y), self.img_yeux)
 
 class MainWindow(QMainWindow):
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        
+        # 1. dégradé de bleu très clair
+        painter.fillRect(self.rect(), QColor("#E0F2FE")) # bleu très clair
+        
+        # 2. La grille (lignes bleues pastel)
+        pen = QPen(QColor("#BAE6FD")) # bleu pastel
+        pen.setWidth(1)
+        painter.setPen(pen)
+        
+        # On dessine la grille sur tout l'écran
+        for x in range(0, self.width(), 40): # Une case toutes les 40 pixels
+            painter.drawLine(x, 0, x, self.height())
+        for y in range(0, self.height(), 40):
+            painter.drawLine(0, y, self.width(), y)
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Logique des Défauts - 90s Edition")
@@ -84,7 +102,7 @@ class MainWindow(QMainWindow):
 
         # --- MENU ---
         menu = self.menuBar()
-        menu.setStyleSheet("background-color: #A8D8EA; color: #333;")
+        menu.setStyleSheet("background-color: #c3e9fd; color: #333;")
         menu.addAction("Nouveau", self.nouveau)
         menu.addAction("Ouvrir", self.ouvrir)
         menu.addAction("Enregistrer", self.enregistrer)
@@ -199,49 +217,71 @@ class MainWindow(QMainWindow):
         # Menu Musique
         menu.addAction("Son ON/OFF", self.toggle_musique)
         menu.addAction("Exemples", self.charger_exemple)
-        menu.addAction("🎁 Surprise", self.ouvrir_surprise)
+        menu.addAction("Surprise ", self.ouvrir_surprise)
 
-        # --- STYLE CSS (QSS) ---
+                # --- STYLE CSS (QSS) ---
         self.setStyleSheet("""
-            QMainWindow { background-color: #A8D8EA; }
+            QMainWindow { 
+                background: transparent; /* Laisse le paintEvent dessiner le fond */
+            }
+            
+            QMenuBar {
+                background-color: rgba(255, 255, 255, 200);
+                border-bottom: 3px solid #F9C6D3;
+                color: #333;
+            }
+            
             QGroupBox { 
-                border: 3px solid #F9C6D3; 
-                border-radius: 8px; 
-                margin-top: 10px; 
+                border: 4px solid #c3e9fd; /* Bordure bleu pastel */
+                border-radius: 15px; 
+                margin-top: 15px; 
                 font-weight: bold;
-                background-color: #FFFFFF;
+                background-color: #FFFFFF; /* Blanc pur */
                 color: #333;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 3px 0 3px;
-                color: #F9C6D3;
+                left: 15px;
+                padding: 0 5px 0 5px;
+                color: #F9C6D3; /* Titre en rose */
+                font-size: 18px;
             }
+            
             QPushButton {
                 background-color: #F9C6D3;
-                border: 2px solid #FFFFFF;
-                border-radius: 4px;
-                padding: 6px;
+                border: 3px solid #FFFFFF;
+                border-radius: 8px;
+                padding: 8px;
                 color: #333;
+                font-weight: bold;
             }
-            QPushButton:hover { background-color: #FFD1DC; }
-            QPushButton:pressed { background-color: #D4E9F2; }
+            QPushButton:hover { 
+                background-color: #FFD1DC; 
+                border: 3px solid #c3e9fd;
+            }
+            QPushButton:pressed { 
+                background-color: #c3e9fd; 
+            }
+            
             QLineEdit, QListWidget {
                 border: 2px solid #D4E9F2;
-                border-radius: 4px;
-                padding: 3px;
+                border-radius: 8px;
+                padding: 5px;
                 background-color: #FAFAFA;
+                color: #333;
             }
+            
             QTextEdit#terminal {
                 background-color: #2D2D2D;
                 color: #00FF00;
                 font-family: "VT323", "Courier New", monospace;
-                font-size: 20px;
+                font-size: 22px;
                 border: 4px solid #F9C6D3;
+                border-radius: 15px;
+                padding: 10px;
             }
         """)
-
+        
     # ==========================================
     # 4. LOGIQUE DES BOUTONS (CONNEXION AU BACKEND)
     # ==========================================
