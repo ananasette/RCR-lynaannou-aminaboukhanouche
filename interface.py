@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QLabel, QLineEdit, QPushButton, 
                                QListWidget, QTextEdit, QGroupBox, QMessageBox,
                                QFileDialog, QInputDialog)
-from PySide6.QtGui import QPixmap, QPainter, QCursor, QFont, QFontDatabase, QColor, QPen
+from PySide6.QtGui import QPixmap, QPainter, QCursor, QFont, QFontDatabase, QColor, QPen, QIcon
 from PySide6.QtCore import QTimer, Qt, QPoint, QUrl
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 
@@ -12,7 +12,7 @@ from formulas import lire_formule, afficher_formule
 from defaults import Theory, Default
 from reasoning import est_coherent, consequence, formules_incoherentes
 from extensions import extensions, consequence_credulous, consequence_sceptique
-from theoremes import audit, reparations  # <-- Corrigé : theoremes.py
+from theoremes import audit, reparations 
 from surprise import est_secret, surprise
 
 class Personnage(QWidget):
@@ -76,6 +76,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Logique des Défauts - 90s Edition")
+        self.setWindowIcon(QIcon("assets/icon.png"))  
+    
         self.resize(1100, 850)
         
         self.theorie = Theory()
@@ -402,17 +404,53 @@ class MainWindow(QMainWindow):
             self.resultats.append("> Musique reprise.\n")
 
     def ouvrir_surprise(self):
-        code, ok = QInputDialog.getText(self, "Easter Egg :")
+        code, ok = QInputDialog.getText(self, "Easter Egg", "Entrez un mot-clé :")
         if ok and code.strip():
             if est_secret(code):
                 s = surprise(code)
-                self.resultats.append(f"\n*** {s.type} : {s.titre} ***")
-                self.resultats.append(f"Énoncé : {s.enonce}")
-                self.resultats.append(f"Explication : {s.explication}")
-                self.resultats.append(f"Exemple : {s.exemple}")
-                self.resultats.append(f"Source : {s.source}\n")
+                self.fenetre_surprise = FenetreSurprise(s)
+                self.fenetre_surprise.show()
             else:
                 QMessageBox.information(self, "Oups", "Ce n'est pas le bon code secret. Cherche encore !")
+
+
+class FenetreSurprise(QWidget):
+    def __init__(self, s):
+        super().__init__()
+        self.setWindowTitle("Easter Egg")
+        self.resize(600, 400)
+        self.setWindowIcon(QIcon("assets/icon.png")) # Icône pour cette fenêtre aussi
+        
+        layout = QVBoxLayout()
+        
+        # Titre
+        titre = QLabel(f"<h2>{s.type} : {s.titre}</h2>")
+        titre.setStyleSheet("color: #F9C6D3;")
+        layout.addWidget(titre)
+        
+        # Contenu
+        texte = QTextEdit()
+        texte.setReadOnly(True)
+        texte.setStyleSheet("""
+            background-color: #FAFAFA; 
+            color: #333; 
+            font-size: 16px; 
+            border: 2px solid #D4E9F2;
+            border-radius: 8px;
+            padding: 10px;
+        """)
+        texte.append(f"<b>Énoncé :</b> {s.enonce}\n")
+        texte.append(f"<b>Explication :</b> {s.explication}\n")
+        texte.append(f"<b>Exemple :</b> {s.exemple}\n")
+        texte.append(f"<b>Source :</b> {s.source}")
+        layout.addWidget(texte)
+        
+        # Bouton fermer
+        btn_fermer = QPushButton("Fermer")
+        btn_fermer.clicked.connect(self.close)
+        layout.addWidget(btn_fermer)
+        
+        self.setLayout(layout)
 
 if __name__ == "__main__":
     import traceback
