@@ -4,10 +4,9 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QListWidget, QTextEdit, QGroupBox, QMessageBox,
                                QFileDialog, QInputDialog)
 from PySide6.QtGui import QPixmap, QPainter, QCursor, QFont, QFontDatabase, QColor, QPen, QIcon
-from PySide6.QtCore import QTimer, Qt, QPoint, QUrl
-from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PySide6.QtCore import QTimer, Qt, QPoint
 
-# On importe les fonctions du backend de ton binôme
+# On importe les fonctions du backend
 from formulas import lire_formule, afficher_formule
 from defaults import Theory, Default
 from reasoning import est_coherent, consequence, formules_incoherentes
@@ -18,19 +17,15 @@ from surprise import est_secret, surprise
 class Personnage(QWidget):
     def __init__(self):
         super().__init__()
-        self.setAcceptDrops(True) # pour le dépôt de fichiers
+        self.setAcceptDrops(True) 
         self.setFixedSize(400, 200)
-        
-        self.img_corps = QPixmap("assets/corps.png")
-        self.img_yeux = QPixmap("assets/yeux.png")
+  
+        self.img_miku = QPixmap("assets/miku.png")
         self.setAttribute(Qt.WA_TranslucentBackground)
-                
-        if self.img_corps.isNull():
-            self.img_corps = QPixmap(150, 150)
-            self.img_corps.fill(Qt.transparent)
-        if self.img_yeux.isNull():
-            self.img_yeux = QPixmap(40, 20)
-            self.img_yeux.fill(Qt.transparent)
+        
+        if self.img_miku.isNull():
+            self.img_miku = QPixmap(150, 150)
+            self.img_miku.fill(Qt.transparent)
 
         self.pos_souris = QPoint(0, 0)
         self.timer = QTimer(self)
@@ -43,24 +38,23 @@ class Personnage(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.SmoothPixmapTransform, False)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform, False)        
 
-        x_corps = (self.width() - self.img_corps.width()) // 2
-        y_corps = (self.height() - self.img_corps.height()) // 2
-        painter.drawPixmap(x_corps, y_corps, self.img_corps)
+        # Position de base (centrée)
+        base_x = (self.width() - self.img_miku.width()) // 2
+        base_y = (self.height() - self.img_miku.height()) // 2
 
-        dx = self.pos_souris.x() - (x_corps + self.img_corps.width() // 2)
-        dy = self.pos_souris.y() - (y_corps + self.img_corps.height() // 3)
+        # Calcul du déplacement (Miku regarde la souris)
+        dx = self.pos_souris.x() - (base_x + self.img_miku.width() // 2)
+        dy = self.pos_souris.y() - (base_y + self.img_miku.height() // 2)
         
-        max_offset = 6
-        offset_x = max(-max_offset, min(max_offset, dx / 15))
-        offset_y = max(-max_offset, min(max_offset, dy / 15))
+        # Plus la souris est loin, plus Miku se penche vers elle (max 15 pixels)
+        max_offset = 15
+        offset_x = max(-max_offset, min(max_offset, dx / 10))
+        offset_y = max(-max_offset, min(max_offset, dy / 10))
 
-        base_x_yeux = x_corps + (self.img_corps.width() - self.img_yeux.width()) // 2
-        base_y_yeux = y_corps + (self.img_corps.height() // 3)
-
-        painter.drawPixmap(int(base_x_yeux + offset_x), int(base_y_yeux + offset_y), self.img_yeux)
-
+        # On dessine Miku avec le décalage
+        painter.drawPixmap(int(base_x + offset_x), int(base_y + offset_y), self.img_miku)
 class MainWindow(QMainWindow):
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -94,7 +88,6 @@ class MainWindow(QMainWindow):
         menu.addAction("Ouvrir", self.ouvrir)
         menu.addAction("Enregistrer", self.enregistrer)
         menu.addAction("Exemples", self.charger_exemple)
-        menu.addAction("Son ON/OFF", self.toggle_musique)
         menu.addAction("Surprise", self.ouvrir_surprise)
 
         central_widget = QWidget()
@@ -171,7 +164,6 @@ class MainWindow(QMainWindow):
         btn_credule = QPushButton("Crédule ?")
         btn_credule.clicked.connect(self.tester_credule)
         
-        # Séparation de l'audit et de la réparation
         btn_audit = QPushButton("Audit des théorèmes")
         btn_audit.clicked.connect(self.lancer_audit)
         
@@ -192,13 +184,6 @@ class MainWindow(QMainWindow):
         self.resultats.setMinimumHeight(140)
         main_layout.addWidget(self.resultats, 1)
 
-        self.player = QMediaPlayer()
-        self.audio_output = QAudioOutput()
-        self.player.setAudioOutput(self.audio_output)
-        self.player.setSource(QUrl.fromLocalFile("assets/music.mp3"))
-        self.player.setLoops(QMediaPlayer.Infinite)
-        self.player.play()
-
         self.setStyleSheet("""
             QMainWindow { background: transparent; }
             QMenuBar { background-color: rgba(255, 255, 255, 200); border-bottom: 3px solid #F9C6D3; color: #333; }
@@ -212,7 +197,7 @@ class MainWindow(QMainWindow):
         """)
 
     def dragEnterEvent(self, event):
-        # Vérifie si ce qu'on glisse est bien un fichier texte
+        # vérifie si ce qu'on glisse est bien un fichier texte
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
         else:
@@ -225,7 +210,7 @@ class MainWindow(QMainWindow):
             event.ignore()
 
     def dropEvent(self, event):
-        # Quand on lâche le fichier
+        # quand on lâche le fichier
         for url in event.mimeData().urls():
             fichier = url.toLocalFile()
             if fichier.endswith('.txt') or fichier.endswith('.json'):
@@ -364,13 +349,13 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "Erreur", f"Impossible de sauvegarder : {e}")
 
     def ouvrir(self):
-        # La fenêtre classique de sélection de fichier
+        # La fenêtre de selection de fichier
         fichier, _ = QFileDialog.getOpenFileName(self, "Ouvrir une théorie", "", "Fichiers texte (*.txt)")
         if fichier:
             self.charger_fichier_par_chemin(fichier)
 
     def charger_fichier_par_chemin(self, fichier):
-        # Cette fonction fait le vrai travail de chargement
+        # fct pour le chargement
         try:
             self.theorie = Theory.charger(fichier)
             self.nouveau()
@@ -396,14 +381,6 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.resultats.append(f"Erreur exemple : {e}\n")
 
-    def toggle_musique(self):
-        if self.player.playbackState() == QMediaPlayer.PlayingState:
-            self.player.pause()
-            self.resultats.append("> Musique en pause.\n")
-        else:
-            self.player.play()
-            self.resultats.append("> Musique reprise.\n")
-
     def ouvrir_surprise(self):
         code, ok = QInputDialog.getText(self, "Easter Egg", "Entrez un mot-clé :")
         if ok and code.strip():
@@ -420,16 +397,16 @@ class FenetreSurprise(QWidget):
         super().__init__()
         self.setWindowTitle("Easter Egg")
         self.resize(600, 400)
-        self.setWindowIcon(QIcon("assets/icon.png")) # Icône pour cette fenêtre aussi
+        self.setWindowIcon(QIcon("assets/icon.png")) 
         
         layout = QVBoxLayout()
         
-        # Titre
+        # titre
         titre = QLabel(f"<h2>{s.type} : {s.titre}</h2>")
         titre.setStyleSheet("color: #F9C6D3;")
         layout.addWidget(titre)
         
-        # Contenu
+        # contenu
         texte = QTextEdit()
         texte.setReadOnly(True)
         texte.setStyleSheet("""
@@ -446,7 +423,7 @@ class FenetreSurprise(QWidget):
         texte.append(f"<b>Source :</b> {s.source}")
         layout.addWidget(texte)
         
-        # Bouton fermer
+        # bouton fermer
         btn_fermer = QPushButton("Fermer")
         btn_fermer.clicked.connect(self.close)
         layout.addWidget(btn_fermer)
