@@ -402,7 +402,7 @@ class MainWindow(QMainWindow):
             self.resultats.append("> Musique reprise.\n")
 
     def ouvrir_surprise(self):
-        code, ok = QInputDialog.getText(self, "Easter Egg", "Entrez un mot-clé (ex: 'reiter', 'nixon', 'theory', '67', '13') :")
+        code, ok = QInputDialog.getText(self, "Easter Egg :")
         if ok and code.strip():
             if est_secret(code):
                 s = surprise(code)
