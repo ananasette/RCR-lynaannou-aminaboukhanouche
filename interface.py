@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PySide6.QtGui import QPixmap, QPainter, QCursor, QFont, QFontDatabase, QColor, QPen
 from PySide6.QtCore import QTimer, Qt, QPoint, QUrl
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
-from theorem import audit, reparations
+from theoremes import audit, reparations   # CORRIGÉ : le fichier s'appelle theoremes.py
 from surprise import est_secret, surprise
 
 # to import the backend logic functions
@@ -216,7 +216,7 @@ class MainWindow(QMainWindow):
         
         # Menu Musique
         menu.addAction("Son ON/OFF", self.toggle_musique)
-        menu.addAction("Exemples", self.charger_exemple)
+        # CORRIGÉ : le doublon menu.addAction("Exemples", ...) a été supprimé ici
         menu.addAction("Surprise ", self.ouvrir_surprise)
 
                 # --- STYLE CSS (QSS) ---
@@ -302,6 +302,7 @@ class MainWindow(QMainWindow):
             del self.theorie.faits[row]
             del self.theorie._src_faits[row]
 
+    # CORRIGÉ : récupère et affiche les avertissements renvoyés par le backend
     def ajouter_defaut(self):
         p = self.input_prerequis.text().strip()
         j = self.input_just.text().strip()
@@ -312,11 +313,16 @@ class MainWindow(QMainWindow):
         texte_defaut = f"{p} : {j} / {c}"
         
         try:
-            self.theorie.ajouter_defaut(texte_defaut)
+            avertissements = self.theorie.ajouter_defaut(texte_defaut)
             self.liste_d.addItem(texte_defaut)
             self.input_prerequis.clear()
             self.input_just.clear()
             self.input_conseq.clear()
+            if avertissements:
+                QMessageBox.warning(self, "Avertissement", "\n".join(avertissements))
+                for a in avertissements:
+                    self.resultats.append(f"> ATTENTION : {a}")
+                self.resultats.append("")
         except ValueError as e:
             QMessageBox.warning(self, "Erreur de syntaxe", str(e))
 
@@ -337,6 +343,7 @@ class MainWindow(QMainWindow):
                 self.resultats.append(f"  Formule contradictoire : {afficher_formule(f)}")
             self.resultats.append("")
 
+    # CORRIGÉ : extensions() renvoie maintenant des objets Extension (E.base, E.noms...)
     def generer_extensions(self):
         self.resultats.append("> Génération des extensions...")
         try:
@@ -347,9 +354,11 @@ class MainWindow(QMainWindow):
             
             self.resultats.append(f"{len(exts)} extension(s) trouvée(s) :")
             for i, E in enumerate(exts, 1):
-                # E est une liste de formules SymPy
-                formules_str = ", ".join(afficher_formule(f) for f in E)
+                formules_str = ", ".join(afficher_formule(f) for f in E.base)
+                litteraux = ", ".join(afficher_formule(l) for l in E.litteraux()) or "(aucun)"
                 self.resultats.append(f"  E{i} = Th({{{formules_str}}})")
+                self.resultats.append(f"      littéraux : {litteraux}")
+                self.resultats.append(f"      défauts appliqués : {E.noms or '(aucun)'}")
             self.resultats.append("")
         except Exception as e:
             self.resultats.append(f"Erreur lors du calcul : {e}\n")

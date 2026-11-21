@@ -41,14 +41,25 @@ class Theory:
         self._src_faits.append(texte.strip())
 
     def ajouter_defaut(self, texte):
-        """Ajoute le défaut et renvoie la liste des avertissements (éventuellement vide).
-        Une justification incohérente (ex. x & ~x) n'est pas une erreur : le défaut
-        est ajouté, mais il ne sera jamais applicable."""
+        """Ajoute le défaut et renvoie la liste des avertissements (éventuellement vide)."""
         d = Default.depuis_texte(texte)
-        avertissements = [
-            f"La justification « {afficher_formule(j)} » est incohérente : "
-            f"ce défaut ne sera jamais applicable."
-            for j in d.justifications if not est_coherent([j])]
+        avertissements = []
+        for j in d.justifications:
+            if not est_coherent([j]):
+                avertissements.append(
+                    f"La justification « {afficher_formule(j)} » est incohérente : "
+                    f"ce défaut ne sera jamais applicable.")
+            elif not est_coherent([j, d.conclusion]):
+                avertissements.append(
+                    f"La justification « {afficher_formule(j)} » contredit le conséquent "
+                    f"« {afficher_formule(d.conclusion)} » : ce défaut détruit sa propre "
+                    f"justification. Si son prérequis est vrai, la théorie n'a aucune extension.")
+        # joint check: all justifications together must be satisfiable
+        if len(d.justifications) > 1 and all(est_coherent([j]) for j in d.justifications) \
+                and not est_coherent(list(d.justifications)):
+            avertissements.append(
+                "Les justifications sont incohérentes entre elles : "
+                "ce défaut ne sera jamais applicable.")
         self.defauts.append(d)
         self._src_defauts.append(texte.strip())
         return avertissements
